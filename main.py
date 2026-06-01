@@ -1,5 +1,6 @@
 from machine import Pin
 from machine import ADC
+from machine import PWM
 from utime import sleep
 
 # 7-segment display layout
@@ -63,6 +64,7 @@ https://youtu.be/IkbVy6IKhzU
 
 potente = ADC(27)
 producto = 1
+
 def potenciometro():
     global cantidad1, cantidad2, cantidad3, producto
     while True:
@@ -93,6 +95,7 @@ def error():
     print("vacío")
 
 btn = Pin(19, Pin.IN, Pin.PULL_UP)
+servo=PWM(Pin(20))
 cantidad1 = 9
 cantidad2 = 9
 cantidad3 = 9
@@ -109,6 +112,7 @@ def seleccion(producto):
             cantidad1 -=1
             print(cantidad1)
             display_number(cantidad1)
+            caida()
                     
     if producto == 2:
         if cantidad2 == 0:
@@ -117,6 +121,7 @@ def seleccion(producto):
             cantidad2 -=1
             print(cantidad2)
             display_number(cantidad2)
+            caida()
 
     if producto == 3:
         if cantidad3 == 0:
@@ -125,8 +130,20 @@ def seleccion(producto):
             cantidad3 -=1
             print(cantidad3)
             display_number(cantidad3)
+            caida()
     
-
+def caida():
+    global producto, btn
+    if producto!=0 and btn.value()==1:
+        for pulso in range(500000, 1250000,500):
+            servo.duty_ns(pulso)
+            sleep(0.5)
+        sleep(5)
+        for pulso in range(1250000, 500000,-500):
+            servo.duty_ns(pulso)
+            sleep(0.5)
+    else:
+        caida()
 
 
 number = 6
