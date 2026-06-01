@@ -1,6 +1,5 @@
 from machine import Pin
 from machine import ADC
-from machine import PWM
 from utime import sleep
 
 # 7-segment display layout
@@ -12,7 +11,8 @@ from utime import sleep
 #      ---
 #       D
 
-
+led1 = Pin(20, Pin.OUT)
+led2 = Pin(21, Pin.OUT)
 
 
 """
@@ -64,7 +64,6 @@ https://youtu.be/IkbVy6IKhzU
 
 potente = ADC(27)
 producto = 1
-
 def potenciometro():
     global cantidad1, cantidad2, cantidad3, producto
     while True:
@@ -74,18 +73,36 @@ def potenciometro():
             print("Producto 1")
             display_number(cantidad1)
             producto = 1
+            if cantidad1 == 0:
+                led1.value(0)
+                led2.value(1)
+            else:
+                led2.value(0)
+                led1.value(1)
             sleep(0.8)
             
         if 17300 < lectura < 40100:
             print("Producto 2")
             display_number(cantidad2)
-            producto = 2      
+            producto = 2
+            if cantidad2 == 0:
+                led1.value(0)
+                led2.value(1)
+            else:
+                led2.value(0)
+                led1.value(1)
             sleep(0.8)
             
         if lectura > 40100:
             print("Producto 3")
             display_number(cantidad3)
             producto = 3
+            if cantidad3 == 0:
+                led1.value(0)
+                led2.value(1)
+            else:
+                led2.value(0)
+                led1.value(1)
             sleep(0.8)
             
         if btn.value() == 0:
@@ -94,13 +111,25 @@ def potenciometro():
 def error():
     print("vacío")
 
-btn = Pin(19, Pin.IN, Pin.PULL_UP)
+
 servo=PWM(Pin(20))
+def caida():
+    global producto, btn
+    if producto!=0 and btn.value()==1:
+        for pulso in range(500000, 1250000,500):
+            servo.duty_ns(pulso)
+            sleep(0.5)
+        sleep(5)
+        for pulso in range(1250000, 500000,-500):
+            servo.duty_ns(pulso)
+            sleep(0.5)
+    else:
+        caida()
+
+btn = Pin(19, Pin.IN, Pin.PULL_UP)
 cantidad1 = 9
 cantidad2 = 9
 cantidad3 = 9
-
-
 def seleccion(producto):
     
     global cantidad1, cantidad2, cantidad3
@@ -113,6 +142,7 @@ def seleccion(producto):
             print(cantidad1)
             display_number(cantidad1)
             caida()
+            
                     
     if producto == 2:
         if cantidad2 == 0:
@@ -132,20 +162,62 @@ def seleccion(producto):
             display_number(cantidad3)
             caida()
     
-def caida():
-    global producto, btn
-    if producto!=0 and btn.value()==1:
-        for pulso in range(500000, 1250000,500):
-            servo.duty_ns(pulso)
-            sleep(0.5)
-        sleep(5)
-        for pulso in range(1250000, 500000,-500):
-            servo.duty_ns(pulso)
-            sleep(0.5)
-    else:
-        caida()
 
 
+# main.py (MicroPython)
+import network
+import socket
+import time
+from machine import Pin
+
+SSID = "NOMBRE RED WIFI" #No debe tener caracteres especiales
+PASSWORD = "12345678"
+
+led = Pin(1, Pin.OUT)
+
+def connect_wifi():
+    wlan = network.WLAN(network.STA_IF)
+    wlan.active(True)
+    wlan.connect(SSID, PASSWORD)
+    
+    print("Conectando a WiFi...", end="")
+    while not wlan.isconnected():
+        print(".", end="")
+        time.sleep(0.5)
+    print("\nConectado:", wlan.ifconfig())
+    return wlan.ifconfig()[0]
+
+def start_server(ip):
+    s = socket.socket()
+    s.bind((ip, 1717))
+    s.listen(1)
+    print("Esperando conexión del cliente...")
+    conn, addr = s.accept()
+    print("Conectado desde:", addr)
+    
+    while True:
+        data = conn.recv(1024)
+        if not data:
+            break
+        msg = data.decode()
+        print("Mensaje recibido:", msg)
+        
+        potenciometro()
+        
+        
+        # Acciones según el potenciometro
+        if potenciometro() == 1:
+            conn.send(1.encode())
+        elif potenciometro() == 2:
+            conn.send(2.encode())
+        elif potenciometro() == 2:
+            conn.send(2.encode())
+        else:
+            # Enviar eco de vuelta
+            conn.send(f"Echo: {msg}".encode())
+
+ip = connect_wifi()
+start_server(ip)
 number = 6
 potenciometro()
 
