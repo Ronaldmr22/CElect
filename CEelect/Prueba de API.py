@@ -7,6 +7,5 @@ url = 'https://api.hacienda.go.cr/indicadores/tc/dolar'
 # Making our request
 response = requests.get(url)
 data = response.json()
-
 # Your JSON object
 print (data)

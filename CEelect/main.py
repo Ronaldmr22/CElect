@@ -53,6 +53,8 @@ def reset():
         pin.value(1)
 
 def display_number(number):
+    if number < 0 or number > 9:
+        return 
     pins_values = number_map[number]
     for i in range(len(pins)):
         pins[i].value(pins_values[i])
@@ -64,65 +66,28 @@ https://youtu.be/IkbVy6IKhzU
 
 potente = ADC(27)
 producto = 1
-"""
-def potenciometro():
-    global cantidad1, cantidad2, cantidad3, producto
-    while True:
-        lectura = potente.read_u16()
-        if 200 < lectura < 17300:
-            print("Producto 1")
-            display_number(cantidad1)
-            producto = 1
-            if cantidad1 == 0:
-                led1.value(0)
-                led2.value(1)
-            else:
-                led2.value(0)
-                led1.value(1)
-            sleep(0.8)
-            
-        if 17300 < lectura < 40100:
-            print("Producto 2")
-            display_number(cantidad2)
-            producto = 2
-            if cantidad2 == 0:
-                led1.value(0)
-                led2.value(1)
-            else:
-                led2.value(0)
-                led1.value(1)
-            sleep(0.8)
-            
-        if lectura > 40100:
-            print("Producto 3")
-            display_number(cantidad3)
-            producto = 3
-            if cantidad3 == 0:
-                led1.value(0)
-                led2.value(1)
-            else:
-                led2.value(0)
-                led1.value(1)
-            sleep(0.8)
-            
-        if btn.value() == 0:
-                seleccion(producto)
-"""
+cantidad1 = 0
+cantidad2 = 0
+cantidad3 = 0
+
 def error():
     print("vacío")
+    led1.value(0)
+    led2.value(1) 
 
 
 servo=PWM(Pin(20))
+servo.freq(50)
 def caida():
     global producto, btn
-    if producto!=0 and btn.value()==1:
-        for pulso in range(500000, 1250000,500):
-            servo.duty_ns(pulso)
-            sleep(0.5)
-        sleep(5)
-        for pulso in range(1250000, 500000,-500):
-            servo.duty_ns(pulso)
-            sleep(0.5)
+    #if producto!=0 and btn.value()==1:
+    for pulso in range(500000, 1300000,500):
+        servo.duty_ns(pulso)
+        sleep(0.002)
+    sleep(4)
+    for pulso in range(1300000, 500000,-500):
+        servo.duty_ns(pulso)
+        sleep(0.002)
 
 btn = Pin(19, Pin.IN, Pin.PULL_UP)
 #cantidad1 = 9
@@ -136,7 +101,6 @@ def seleccion(producto):
         if cantidad1 == 0:
             error()
         else:
-            cantidad1 -=1
             print(cantidad1)
             display_number(cantidad1)
             caida()
@@ -147,7 +111,6 @@ def seleccion(producto):
         if cantidad2 == 0:
             error()
         else:
-            cantidad2 -=1
             print(cantidad2)
             display_number(cantidad2)
             caida()
@@ -157,7 +120,6 @@ def seleccion(producto):
         if cantidad3 == 0:
             error()
         else:
-            cantidad3 -=1
             print(cantidad3)
             display_number(cantidad3)
             caida()
@@ -189,7 +151,7 @@ def connect_wifi():
     return wlan.ifconfig()[0]
 
 def start_server(ip):
-    
+    global cantidad1, cantidad2, cantidad3
     s = socket.socket()
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((ip, 1717))
@@ -199,7 +161,7 @@ def start_server(ip):
     print("Conectado desde:", addr)
     
     while True:
-        global producto
+        global producto, cantidad1, cantidad2, cantidad3
         data = conn.recv(1024)
         if not data:
             conn.close()
@@ -225,7 +187,6 @@ def start_server(ip):
             else:
                 led2.value(0)
                 led1.value(1)
-            sleep(0.8)
             
         if 17300 < lectura < 40100:
             print("Producto 2")
@@ -237,7 +198,6 @@ def start_server(ip):
             else:
                 led2.value(0)
                 led1.value(1)
-            sleep(0.8)
             
         if lectura > 40100:
             print("Producto 3")
@@ -249,7 +209,7 @@ def start_server(ip):
             else:
                 led2.value(0)
                 led1.value(1)
-            sleep(0.8)
+                
         resultado = None
         if btn.value() == 0:
                 resultado =seleccion(producto)
