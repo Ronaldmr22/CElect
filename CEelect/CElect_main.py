@@ -6,7 +6,7 @@ from tkinter import *
 import requests
 import time
 
-SERVER_IP = "192.168.137.97"  # Cambia esto con la IP de la Pico W
+SERVER_IP = "192.168.137.11"  # Cambia esto con la IP de la Pico W
 PORT = 1717
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -175,6 +175,19 @@ ganancias_totales.place(x=400, y=550)
 ganancias_totales_numero = Label(ventana_admin, text=f"{(ventas1*precio_mentas)+(ventas2*precio_galletas)+(ventas3*precio_popis)}", font = ("ArcadeClassic", 25))
 ganancias_totales_numero.place(x=800, y=550)
 
+#Botónes
+def mantenimiento():
+    client_socket.send("mantenimiento".encode())
+
+
+def funcionamiento():
+    client_socket.send("funcionamiento".encode())
+
+
+mante = Button(ventana_admin,text="Mantenimiento", font = ("ArcadeClassic", 10), command = mantenimiento)
+mante.place(x= 500, y= 600)
+func = Button(ventana_admin,text="Funcionamiento", font = ("ArcadeClassic", 10), command = funcionamiento)
+func.place(x= 650, y= 600)
 
 connect()
 ventana_admin.mainloop()
