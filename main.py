@@ -126,7 +126,7 @@ def caida():
     else:
         caida()
 
-btn = Pin(19, Pin.IN, Pin.PULL_UP)
+btn = Pin(5, Pin.IN, Pin.PULL_UP)
 cantidad1 = 9
 cantidad2 = 9
 cantidad3 = 9
