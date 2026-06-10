@@ -52,7 +52,7 @@ def cambioAPI(ganancias, producto):
 def connect():
     global cantidad1, cantidad2, cantidad3, ventas1, ventas2, ventas3
 
-    #Manejo de archivos "txt", fuentes: https://youtu.be/0Uba311CO_A y https://youtu.be/j7CiZl12zcA
+    #Manejo de archivos "txt", fuentes: https://youtu.be/0Uba311CO_A y https://www.youtube.com/watch?v=71xSLk8l25Q&t=604s&pp=ygUTbWFuZWpvcCBkZSBhcmNoaXZvcw%3D%3D
     with open("productos.txt", "r") as f:
         contenido = f.read()
         cantidades = contenido.split("\n")
