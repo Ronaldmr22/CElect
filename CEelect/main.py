@@ -1,6 +1,10 @@
 from machine import Pin, PWM
 from machine import ADC
 from utime import sleep
+import network
+import socket
+import time
+
 
 # 7-segment display layout
 #       A
@@ -13,7 +17,12 @@ from utime import sleep
 
 led1 = Pin(21, Pin.OUT)
 led2 = Pin(22, Pin.OUT)
-
+potente = ADC(26)
+producto = 1
+cantidad1 = 0
+cantidad2 = 0
+cantidad3 = 0
+estado = "funcionamiento"
 
 """
 Listas sacadas de un repositorio de github de Anderson Costa:
@@ -48,9 +57,6 @@ number_map = [
 Función sacada de la página:
 https://electrocredible.com/7-segment-display-with-raspberry-pi-pico/
 """
-def reset():
-    for pin in pins:
-        pin.value(1)
 
 def display_number(number):
     if number < 0 or number > 9:
@@ -59,16 +65,6 @@ def display_number(number):
     for i in range(len(pins)):
         pins[i].value(pins_values[i])
         
-"""
-Código Inspirado de:..
-https://youtu.be/IkbVy6IKhzU
-"""
-
-potente = ADC(27)
-producto = 1
-cantidad1 = 0
-cantidad2 = 0
-cantidad3 = 0
 
 def error():
     print("vacío")
@@ -76,11 +72,13 @@ def error():
     led2.value(1) 
 
 
-servo=PWM(Pin(20))
+"""
+Código sacado de: https://youtu.be/Yr4IAHIj_PU?si=nsrcWIhENvnc668r
+"""
+servo=PWM(Pin(27))
 servo.freq(50)
 def caida():
-    global producto, btn
-    #if producto!=0 and btn.value()==1:
+    global btn
     for pulso in range(500000, 1300000,500):
         servo.duty_ns(pulso)
         sleep(0.002)
@@ -89,10 +87,8 @@ def caida():
         servo.duty_ns(pulso)
         sleep(0.002)
 
-btn = Pin(19, Pin.IN, Pin.PULL_UP)
-#cantidad1 = 9
-#cantidad2 = 9
-#cantidad3 = 9
+btn = Pin(5, Pin.IN, Pin.PULL_UP)
+
 def seleccion(producto):
     
     global cantidad1, cantidad2, cantidad3
@@ -100,6 +96,7 @@ def seleccion(producto):
     if producto == 1:
         if cantidad1 == 0:
             error()
+            return
         else:
             print(cantidad1)
             display_number(cantidad1)
@@ -110,6 +107,7 @@ def seleccion(producto):
     if producto == 2:
         if cantidad2 == 0:
             error()
+            return
         else:
             print(cantidad2)
             display_number(cantidad2)
@@ -119,24 +117,22 @@ def seleccion(producto):
     if producto == 3:
         if cantidad3 == 0:
             error()
+            return
         else:
             print(cantidad3)
             display_number(cantidad3)
             caida()
             return 3
     
+def mantenimiento():
+    patron = [1, 0, 0, 1, 0, 0, 0]
 
-
-# main.py (MicroPython)
-import network
-import socket
-import time
-from machine import Pin
+    for i in range(len(pins)):
+        pins[i].value(patron[i])
+    
 
 SSID = "rasp" #No debe tener caracteres especiales
 PASSWORD = "abc12345"
-
-led = Pin(1, Pin.OUT)
 
 def connect_wifi():
     wlan = network.WLAN(network.STA_IF)
@@ -158,23 +154,43 @@ def start_server(ip):
     s.listen(1)
     print("Esperando conexión del cliente...")
     conn, addr = s.accept()
+    conn.setblocking(False)
     print("Conectado desde:", addr)
     
+    
+
+    
     while True:
-        global producto, cantidad1, cantidad2, cantidad3
-        data = conn.recv(1024)
-        if not data:
-            conn.close()
-            s.close()
-            break
-        msg = data.decode()
-        print("Mensaje recibido:", msg)
+        """
+        Código Inspirado de:..
+        https://youtu.be/IkbVy6IKhzU
+        """
+        global producto, cantidad1, cantidad2, cantidad3, estado
         
-        cantidades = msg.split(",")
-        cantidad1 = int(cantidades[0])
-        cantidad2 = int(cantidades[1])
-        cantidad3 = int(cantidades[2])        
+        try:
+            data = conn.recv(1024)
+            msg = data.decode()
+            print("Mensaje recibido:", msg)
+
+            if msg == "mantenimiento":
+                estado = "mantenimiento"
+            elif msg == "funcionamiento":
+                estado = "funcionamiento"
+
+            elif estado == "funcionamiento":
+                
+                cantidades = msg.split(",")
+                cantidad1 = int(cantidades[0])
+                cantidad2 = int(cantidades[1])
+                cantidad3 = int(cantidades[2])
+
+        except:
+            pass
         
+        if estado == "mantenimiento":
+            mantenimiento()
+            sleep(0.2)
+            continue
         
         lectura = potente.read_u16()
         if 200 < lectura < 17300:
@@ -188,7 +204,7 @@ def start_server(ip):
                 led2.value(0)
                 led1.value(1)
             
-        if 17300 < lectura < 40100:
+        elif 17300 < lectura < 40100:
             print("Producto 2")
             producto = 2
             display_number(cantidad2)
@@ -199,7 +215,7 @@ def start_server(ip):
                 led2.value(0)
                 led1.value(1)
             
-        if lectura > 40100:
+        elif lectura > 40100:
             print("Producto 3")
             producto = 3
             display_number(cantidad3)
@@ -210,24 +226,23 @@ def start_server(ip):
                 led2.value(0)
                 led1.value(1)
                 
-        resultado = None
+
         if btn.value() == 0:
-                resultado =seleccion(producto)
-        
-        
-        # Acciones según el potenciometro
-        if resultado == 1:
-            conn.send("1".encode())
-        elif resultado == 2:
-            conn.send("2".encode())
-        elif resultado == 3:
-            conn.send("3".encode())
+            sleep(0.05)
+            if btn.value() == 0:
+                resultado = seleccion(producto)
+                if resultado == 1:
+                    conn.send("1".encode())
+                    cantidad1 -= 1
+                elif resultado == 2:
+                    conn.send("2".encode())
+                    cantidad2 -= 1
+                elif resultado == 3:
+                    conn.send("3".encode())
+                    cantidad3 -= 1
+                while btn.value() == 0:
+                    sleep(0.01)
+        sleep(0.05)
 
 ip = connect_wifi()
 start_server(ip)
-number = 6
-#potenciometro()
-
-#display_number(number)
-sleep(3)
-reset()
